@@ -2,61 +2,55 @@
 import React from "https://dev.jspm.io/react/index.js";
 // @deno-types="https://deno.land/x/servest@v1.3.1/types/react-dom/server/index.d.ts"
 import ReactDOMServer from "https://dev.jspm.io/react-dom/server.js";
-import {
-    contentTypeFilter,
-    createApp,
-} from "https://deno.land/x/servest@v1.3.1/mod.ts";
+import { createApp } from "https://deno.land/x/servest@v1.3.1/mod.ts";
+
+const colors:any[] = [];
 
 const app = createApp();
-let colors: Array<any> = [];
 
-const listColors = colors.map((color) => (<li>color</li>));
+app.post("/", async(req) => {
+    const body = await req.formData();
+    let color = body.value('color');
 
-const htmlPage = (
-    <html>
-        <head>
-            <meta charSet="utf-8" />
-            <title>Servest</title>
-        </head>
-        <body>
-            <h1>Pick the color</h1>
-            <form action="/color" method="post">
-                <input type="color" name="color"></input>
-                <input type="submit"></input>
-            </form>
-            <ul>{colors}</ul>
-        </body>
-    </html>
-);
+    colors.push(color);
 
-app.handle("/", async (req) => {
+    await req.redirect('/');
+})
+
+app.handle("/", async(req) => {
     await req.respond({
         status: 200,
         headers: new Headers({
             "content-type": "text/html; charset=UTF-8",
         }),
-        body: ReactDOMServer.renderToString(htmlPage),
+
+        body: ReactDOMServer.renderToString(
+            <html>
+                <head>
+                <meta charSet="utf-8" />
+                <title>Servidor en Deno</title>
+                </head>
+                <body style={{backgroundColor: '#000'}}>
+                <h1 style={{color: '#fff', textAlign:"center", marginTop:50}}>Pick the color</h1>
+                <form style={{width:200, margin:"auto", marginTop:50}} action="/" method="post">
+                    <button style={{width:200, textAlign:"center"}}>Send</button>
+                    <input style={{width:200, height:100}} type="color" name="color" />
+                </form>
+                <ul style={{textAlign:"center", marginTop:20, listStyle:"none"}}>
+                {
+                    colors.map( color => 
+                    <li style={{color}}>
+                        <b>{color}</b>
+                    </li>)
+                }
+                </ul>
+                </body>
+            </html>
+        ),
     });
 });
 
-app.post(
-    "/color",
-    contentTypeFilter("application/x-www-form-urlencoded"),
-    async (req) => {
-        const bodyForm = await req.formData();
-        const color = bodyForm.value("color");
-        colors.push(color);
-        await req.respond({
-            status: 200,
-            headers: new Headers({
-                "content-type": "text/html; charset=UTF-8",
-            }),
-            body: ReactDOMServer.renderToString(htmlPage),
-        });
-    }
-);
+app.listen({port: 5000})
 
-app.listen({ port: 8080 });
-
-//! Cambiar a versión 1.8 de Deno para que ande ya que la última versión no tiene solucionado el bug
+//! Cambiar a versión 1.8 de Deno para que ande ya que la última versión no tiene funciona servest tira error
 //! https://stackoverflow.com/questions/71330388/cant-run-server-with-deno-and-servest
